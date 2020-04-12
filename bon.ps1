@@ -10,8 +10,50 @@ problems/
 param (
     $problems,
     [switch]$checkIo = $false,
-    [switch]$checkSolutions = $false
+    [switch]$checkSolutions = $false,
+    [switch]$generateIo = $false
 )
+
+function Invoke-Io-Generator {
+    param ($problem)
+
+    if (!(Test-Path ./problems/$problem/generators -PathType Container)) {
+        return
+    }
+
+    $generator_descriptor = Get-Content -Path ./problems/$problem/generators/descriptor.json | `
+        ConvertFrom-Json
+    foreach ($descriptor_item in $generator_descriptor.PSObject.Properties) {
+        $tc_set = $descriptor_item.Name
+        Write-Host "Generating input for the TC set #$tc_set"
+
+        $index = 1
+        foreach ($tc_descriptor in $descriptor_item.Value) {
+            $generator_name = $tc_descriptor.generator
+            $generator_seed = $tc_descriptor.seed
+            $generator_input = $tc_descriptor.input
+
+            g++ ./problems/$problem/generators/$generator_name `
+                -o ./problems/$problem/generators/$generator_name.exe
+
+            if (!(Test-Path ./problems/$problem/io/$tc_set/$index.in)) {
+                $x = New-Item -Path ./problems/$problem/io/$tc_set/ `
+                    -Name "$index.in" `
+                    -ItemType "file" `
+                    -Value ""
+                $x = $x # quick silly fix
+            }
+            Clear-Content ./problems/$problem/io/$tc_set/$index.in
+
+            # generate input
+            "$generator_seed $generator_input" | `
+                & ./problems/$problem/generators/$generator_name.exe `
+                > ./problems/$problem/io/$tc_set/$index.in
+
+            $index++
+        }
+    }
+}
 
 function Invoke-Io-Validation {
     param ($problem)
@@ -177,6 +219,11 @@ foreach ($problem in $problems) {
     if (!(Test-Path ./problems/$problem/io -PathType Container)) {
         Write-Error "The 'problems/$problem/io' folder doesn't exist."
         continue
+    }
+
+    # generate io
+    if ($generateIo -eq $true) {
+        Invoke-Io-Generator -problem $problem
     }
 
     # check the io

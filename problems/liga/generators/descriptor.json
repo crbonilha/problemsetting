@@ -1,0 +1,32 @@
+{
+    "1": [
+        {
+            "generator": "easy.cpp",
+            "seed": 1234,
+            "input": ""
+        }, {
+            "generator": "easy.cpp",
+            "seed": 4321,
+            "input": ""
+        }, {
+            "generator": "easy.cpp",
+            "seed": 1423,
+            "input": ""
+        }
+    ], 
+    "2": [
+        {
+            "generator": "hard.cpp",
+            "seed": 1543,
+            "input": ""
+        }, {
+            "generator": "hard.cpp",
+            "seed": 3121,
+            "input": ""
+        }, {
+            "generator": "hard.cpp",
+            "seed": 4312,
+            "input": ""
+        }
+    ]
+}
