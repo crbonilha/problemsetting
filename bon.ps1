@@ -3,8 +3,12 @@ problems/
     $problem/
         io/
         solutions/
+            *-ac.cpp
         checkers/
+            *.cpp
         generators/
+            descriptor.json
+            *.cpp
 #>
 
 param (
@@ -82,11 +86,25 @@ function Invoke-Input-Generator {
         return
     }
 
+    if (!(Test-Path ./problems/$problem/io)) {
+        $x = New-Item -Path ./problems/$problem/ `
+            -Name "io" `
+            -ItemType "directory"
+        $x = $x
+    }
+
     $generator_descriptor = Get-Content -Path ./problems/$problem/generators/descriptor.json | `
         ConvertFrom-Json
     foreach ($descriptor_item in $generator_descriptor.PSObject.Properties) {
         $tc_set = $descriptor_item.Name
         Write-Host "Generating input for the TC set #$tc_set"
+
+        if (!(Test-Path ./problems/$problem/io/$tc_set)) {
+            $x = New-Item -Path ./problems/$problem/io/ `
+                -Name "$tc_set" `
+                -ItemType "directory"
+            $x = $x
+        }
 
         $index = 1
         foreach ($tc_descriptor in $descriptor_item.Value) {
