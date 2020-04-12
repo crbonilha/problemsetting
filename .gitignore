@@ -1,0 +1,8 @@
+# compiled binaries
+*.exe
+
+# checkers temp files
+problems/*/checkers/*.txt
+
+# solutions temp files
+problems/*/solutions/temp.txt

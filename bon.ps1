@@ -28,15 +28,13 @@ function Invoke-Io-Validation {
         g++ ./problems/$problem/checkers/$checker `
             -o ./problems/$problem/checkers/$checker.exe
 
-        $checker_name = $checker.Split(".")[0]
-
-        if (!(Test-Path ./problems/$problem/checkers/$checker_name.txt)) {
+        if (!(Test-Path ./problems/$problem/checkers/temp.txt)) {
             New-Item -Path ./problems/$problem/checkers/ `
-                -Name "$checker_name.txt" `
+                -Name "temp.txt" `
                 -ItemType "file" `
                 -Value ""
         }
-        Clear-Content ./problems/$problem/checkers/$checker_name.txt
+        Clear-Content ./problems/$problem/checkers/temp.txt
 
         $tc_sets = Get-ChildItem -Path ./problems/$problem/io/ `
             -Name `
@@ -51,9 +49,9 @@ function Invoke-Io-Validation {
             foreach ($tc in $tcs) {
                 Get-Content ./problems/$problem/io/$tc_set/$tc | `
                     & ./problems/$problem/checkers/$checker.exe `
-                    > ./problems/$problem/checkers/$checker_name.txt
+                    > ./problems/$problem/checkers/temp.txt
 
-                $checker_log = Get-Content ./problems/$problem/checkers/$checker_name.txt
+                $checker_log = Get-Content ./problems/$problem/checkers/temp.txt
                 foreach ($log_line in $checker_log) {
                     $log_line = $log_line.ToLower()
                     if ($log_line.Contains("wrong")) {
@@ -99,7 +97,7 @@ function Invoke-Solution-Validation {
         g++ ./problems/$problem/solutions/$solution `
             -o ./problems/$problem/solutions/$solution.exe
 
-        if (!(Test-Path ./problems/$problem/io/temp.txt)) {
+        if (!(Test-Path ./problems/$problem/solutions/temp.txt)) {
             New-Item -Path ./problems/$problem/io/ `
                 -Name "temp.txt" `
                 -ItemType "file" `
@@ -120,11 +118,11 @@ function Invoke-Solution-Validation {
             foreach ($tc in $tcs) {
                 Get-Content ./problems/$problem/io/$tc_set/$tc | `
                     & ./problems/$problem/solutions/$solution.exe `
-                    > ./problems/$problem/io/temp.txt
+                    > ./problems/$problem/solutions/temp.txt
 
                 $tested_count++
 
-                if ($null -eq (Get-Content -Path ./problems/$problem/io/temp.txt)) {
+                if ($null -eq (Get-Content -Path ./problems/$problem/solutions/temp.txt)) {
                     continue;
                 }
 
@@ -133,7 +131,7 @@ function Invoke-Solution-Validation {
                 # compare the objects
                 $diff = Compare-Object `
                     -ReferenceObject (Get-Content -Path ./problems/$problem/io/$tc_set/$tc_sol.out) `
-                    -DifferenceObject (Get-Content -Path ./problems/$problem/io/temp.txt)
+                    -DifferenceObject (Get-Content -Path ./problems/$problem/solutions/temp.txt)
 
                 if ($null -eq $diff) {
                     $accepted_count++
