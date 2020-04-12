@@ -1,10 +1,17 @@
 # Problem Setting
 
+This is a tool to help automate problem setting's common tasks, such as generating input/output files, validating input/output files
+against the problem description's constraints, and validating the solutions.
+
+## Setup
+
+To use this tool you must run the "bon.ps1" script on a PowerShell terminal.
+
 ## Usage example
 
 ### Validating the Input
 
-`./bon.ps1 -problems liga -checkIo`
+`$ ./bon.ps1 -problems liga -checkIo`
 
 Outputs:
 
@@ -19,7 +26,7 @@ hard : 3
 
 ### Validating the Solutions
 
-`./bon.ps1 -problems liga -checkSolutions`
+`$ ./bon.ps1 -problems liga -checkSolutions`
 
 Outputs:
 
