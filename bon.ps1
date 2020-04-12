@@ -11,13 +11,74 @@ param (
     $problems,
     [switch]$checkIo = $false,
     [switch]$checkSolutions = $false,
-    [switch]$generateIo = $false
+    [switch]$generateInput = $false,
+    [switch]$generateOutput = $false
 )
 
-function Invoke-Io-Generator {
+function Invoke-Output-Generator {
+    param ($problem)
+
+    if (!(Test-Path ./problems/$problem/solutions -PathType Container)) {
+        return
+    }
+
+    $solutions = Get-ChildItem -Path ./problems/$problem/solutions/*-ac.cpp `
+        -Name
+    if ($null -eq $solutions) {
+        Write-Host "Found no solutions suffixed with '-ac' to generate the output."
+        return
+    }
+    $solution = $null
+    if ($solutions.GetType().Name -eq "String") {
+        $solution = $solutions
+    } elseif ($solutions.GetType().Name -eq "Object[]") {
+        $solution = $solutions[0]
+    } else {
+        Write-Host "Error while finding generation solution."
+        return
+    }
+
+    Write-Host "Generating output using solution $solution."
+
+    g++ ./problems/$problem/solutions/$solution `
+        -o ./problems/$problem/solutions/$solution.exe
+
+    $tc_sets = Get-ChildItem -Path ./problems/$problem/io/ `
+        -Name `
+        -Attributes D
+    foreach ($tc_set in $tc_sets) {
+        Write-Host "Checking the TC set #$tc_set"
+
+        $tcs = Get-ChildItem -Path ./problems/$problem/io/$tc_set/*.in `
+            -Name
+        foreach ($tc in $tcs) {
+            $tc_number = $tc.Split(".")[0]
+
+            if (!(Test-Path ./problems/$problem/io/$tc_set/$tc_number.out)) {
+                $x = New-Item -Path ./problems/$problem/io/$tc_set/ `
+                    -Name "$tc_number.out" `
+                    -ItemType "file" `
+                    -Value ""
+                $x = $x # quick silly fix
+            }
+            Clear-Content ./problems/$problem/io/$tc_set/$tc_number.out
+
+            Get-Content ./problems/$problem/io/$tc_set/$tc | `
+                & ./problems/$problem/solutions/$solution.exe `
+                > ./problems/$problem/io/$tc_set/$tc_number.out
+        }
+    }
+}
+
+function Invoke-Input-Generator {
     param ($problem)
 
     if (!(Test-Path ./problems/$problem/generators -PathType Container)) {
+        return
+    }
+
+    if (!(Test-Path ./probelms/$problem/generators/descriptor.json)) {
+        Write-Host "File generators/descriptor.json not found."
         return
     }
 
@@ -32,6 +93,11 @@ function Invoke-Io-Generator {
             $generator_name = $tc_descriptor.generator
             $generator_seed = $tc_descriptor.seed
             $generator_input = $tc_descriptor.input
+
+            if (!(Test-Path ./problems/$problem/generators/$generator_name)) {
+                Write-Host "Generator $generator_name not found."
+                continue
+            }
 
             g++ ./problems/$problem/generators/$generator_name `
                 -o ./problems/$problem/generators/$generator_name.exe
@@ -221,9 +287,14 @@ foreach ($problem in $problems) {
         continue
     }
 
-    # generate io
-    if ($generateIo -eq $true) {
-        Invoke-Io-Generator -problem $problem
+    # generate input
+    if ($generateInput -eq $true) {
+        Invoke-Input-Generator -problem $problem
+    }
+
+    # generate output
+    if ($generateOutput -eq $true) {
+        Invoke-Output-Generator -problem $problem
     }
 
     # check the io
