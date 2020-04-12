@@ -77,7 +77,7 @@ function Invoke-Input-Generator {
         return
     }
 
-    if (!(Test-Path ./probelms/$problem/generators/descriptor.json)) {
+    if (!(Test-Path ./problems/$problem/generators/descriptor.json)) {
         Write-Host "File generators/descriptor.json not found."
         return
     }
