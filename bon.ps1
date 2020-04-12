@@ -29,10 +29,11 @@ function Invoke-Io-Validation {
             -o ./problems/$problem/checkers/$checker.exe
 
         if (!(Test-Path ./problems/$problem/checkers/temp.txt)) {
-            New-Item -Path ./problems/$problem/checkers/ `
+            $x = New-Item -Path ./problems/$problem/checkers/ `
                 -Name "temp.txt" `
                 -ItemType "file" `
                 -Value ""
+            $x = $x # quick silly fix
         }
         Clear-Content ./problems/$problem/checkers/temp.txt
 
@@ -76,7 +77,12 @@ function Invoke-Io-Validation {
 
             foreach ($key in $log_map.keys) {
                 $value = $log_map[$key]
-                Write-Host "$key : $value"
+
+                $foreground_color = "Green"
+                if ($key.Contains("wrong")) {
+                    $foreground_color = "Red"
+                }
+                Write-Host "$key : $value" -ForegroundColor $foreground_color
             }
         }
     }
@@ -98,10 +104,11 @@ function Invoke-Solution-Validation {
             -o ./problems/$problem/solutions/$solution.exe
 
         if (!(Test-Path ./problems/$problem/solutions/temp.txt)) {
-            New-Item -Path ./problems/$problem/io/ `
+            $x = New-Item -Path ./problems/$problem/solutions/ `
                 -Name "temp.txt" `
                 -ItemType "file" `
                 -Value "."
+            $x = $x
         }
 
         $tc_sets = Get-ChildItem -Path ./problems/$problem/io/ `
