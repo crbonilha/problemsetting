@@ -86,13 +86,6 @@ function Invoke-Input-Generator {
         return
     }
 
-    if (!(Test-Path ./problems/$problem/io)) {
-        $x = New-Item -Path ./problems/$problem/ `
-            -Name "io" `
-            -ItemType "directory"
-        $x = $x
-    }
-
     $generator_descriptor = Get-Content -Path ./problems/$problem/generators/descriptor.json | `
         ConvertFrom-Json
     foreach ($descriptor_item in $generator_descriptor.PSObject.Properties) {
@@ -307,8 +300,10 @@ foreach ($problem in $problems) {
     }
 
     if (!(Test-Path ./problems/$problem/io -PathType Container)) {
-        Write-Error "The 'problems/$problem/io' folder doesn't exist."
-        continue
+        $x = New-Item -Path ./problems/$problem/ `
+            -Name "io" `
+            -ItemType "directory"
+        $x = $x
     }
 
     # generate input
