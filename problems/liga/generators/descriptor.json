@@ -12,6 +12,9 @@
             "generator": "easy.cpp",
             "seed": 1423,
             "input": ""
+        }, {
+            "generator": null,
+            "input": "23"
         }
     ], 
     "2": [

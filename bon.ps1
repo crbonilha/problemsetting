@@ -112,14 +112,6 @@ function Invoke-Input-Generator {
             $generator_seed = $tc_descriptor.seed
             $generator_input = $tc_descriptor.input
 
-            if (!(Test-Path ./problems/$problem/generators/$generator_name)) {
-                Write-Host "Generator $generator_name not found."
-                continue
-            }
-
-            g++ ./problems/$problem/generators/$generator_name `
-                -o ./problems/$problem/generators/$generator_name.exe
-
             if (!(Test-Path ./problems/$problem/io/$tc_set/$index.in)) {
                 $x = New-Item -Path ./problems/$problem/io/$tc_set/ `
                     -Name "$index.in" `
@@ -129,10 +121,24 @@ function Invoke-Input-Generator {
             }
             Clear-Content ./problems/$problem/io/$tc_set/$index.in
 
-            # generate input
-            "$generator_seed $generator_input" | `
-                & ./problems/$problem/generators/$generator_name.exe `
-                > ./problems/$problem/io/$tc_set/$index.in
+            if ($null -eq $generator_name) {
+                # generate input
+                "$generator_input" `
+                    > ./problems/$problem/io/$tc_set/$index.in
+            } else {
+                if (!(Test-Path ./problems/$problem/generators/$generator_name)) {
+                    Write-Host "Generator $generator_name not found."
+                    continue
+                }
+
+                g++ ./problems/$problem/generators/$generator_name `
+                    -o ./problems/$problem/generators/$generator_name.exe
+
+                # generate input
+                "$generator_seed $generator_input" | `
+                    & ./problems/$problem/generators/$generator_name.exe `
+                    > ./problems/$problem/io/$tc_set/$index.in
+            }
 
             $index++
         }
