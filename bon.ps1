@@ -16,7 +16,8 @@ param (
     [switch]$checkIo = $false,
     [switch]$checkSolutions = $false,
     [switch]$generateInput = $false,
-    [switch]$generateOutput = $false
+    [switch]$generateOutput = $false,
+    [switch]$debugSolutions = $false
 )
 
 function Invoke-Output-Generator {
@@ -224,9 +225,15 @@ function Invoke-Solution-Validation {
         -Name
     foreach ($solution in $solutions) {
         Write-Host "Working on solution $solution."
+        $solution_name = $solution.Split(".")[0]
 
         g++ ./problems/$problem/solutions/$solution `
             -o ./problems/$problem/solutions/$solution.exe
+        if ($debugSolutions) {
+            g++ ./problems/$problem/solutions/$solution `
+                -o ./problems/$problem/solutions/$solution.debug.exe `
+                -DDEBUG
+        }
 
         if (!(Test-Path ./problems/$problem/solutions/temp.txt)) {
             $x = New-Item -Path ./problems/$problem/solutions/ `
@@ -236,11 +243,25 @@ function Invoke-Solution-Validation {
             $x = $x
         }
 
+        if ($debugSolutions -and !(Test-Path ./problems/$problem/solutions/$solution_name-debug -PathType Container)) {
+            $x = New-Item -Path ./problems/$problem/solutions/ `
+                -Name "$solution_name-debug" `
+                -ItemType "directory"
+            $x = $x
+        }
+
         $tc_sets = Get-ChildItem -Path ./problems/$problem/io/ `
             -Name `
             -Attributes D
         foreach ($tc_set in $tc_sets) {
             Write-Host "Checking the TC set #$tc_set : " -NoNewline
+
+            if ($debugSolutions -and !(Test-Path ./problems/$problem/solutions/$solution_name-debug/$tc_set -PathType Container)) {
+                $x = New-Item -Path ./problems/$problem/solutions/$solution_name-debug/ `
+                    -Name "$tc_set" `
+                    -ItemType "directory"
+                $x = $x
+            }
 
             $tested_count = 0
             $accepted_count = 0
@@ -248,6 +269,30 @@ function Invoke-Solution-Validation {
             $tcs = Get-ChildItem -Path ./problems/$problem/io/$tc_set/*.in `
                 -Name
             foreach ($tc in $tcs) {
+                if ($debugSolutions) {
+                    if (!(Test-Path ./problems/$problem/solutions/$solution_name-debug/$tc_set/$tc.debug)) {
+                        $x = New-Item -Path ./problems/$problem/solutions/$solution_name-debug/$tc_set/ `
+                        -Name "$tc.debug" `
+                        -ItemType "file" `
+                        -Value "."
+                        $x = $x
+                    }
+                    $debug_file_path = "./problems/$problem/solutions/$solution_name-debug/$tc_set/$tc.debug"
+                    Clear-Content -Path "$debug_file_path"
+                    if (!(Test-Path ./problems/$problem/solutions/$solution_name-debug/$tc_set/$tc.out)) {
+                        $x = New-Item -Path ./problems/$problem/solutions/$solution_name-debug/$tc_set/ `
+                            -Name "$tc.out" `
+                            -ItemType "file" `
+                            -Value "."
+                        $x = $x
+                    }
+                    Clear-Content -Path "./problems/$problem/solutions/$solution_name-debug/$tc_set/$tc.out"
+
+                    "$debug_file_path " + (Get-Content ./problems/$problem/io/$tc_set/$tc) | `
+                        & ./problems/$problem/solutions/$solution.debug.exe `
+                        > ./problems/$problem/solutions/$solution_name-debug/$tc_set/$tc.out
+                }
+
                 Get-Content ./problems/$problem/io/$tc_set/$tc | `
                     & ./problems/$problem/solutions/$solution.exe `
                     > ./problems/$problem/solutions/temp.txt

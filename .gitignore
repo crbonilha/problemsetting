@@ -6,3 +6,6 @@ problems/*/checkers/*.txt
 
 # solutions temp files
 problems/*/solutions/temp.txt
+
+# debug temp files
+problems/*/solutions/*-debug
