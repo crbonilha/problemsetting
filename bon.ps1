@@ -116,9 +116,11 @@ function Invoke-Input-Generator {
             Clear-Content ./problems/$problem/io/$tc_set/$index.in
 
             if ($null -eq $generator_name) {
-                # generate input
-                "$generator_input" `
-                    > ./problems/$problem/io/$tc_set/$index.in
+                if ($null -ne $generator_input) {
+                    # generate input
+                    "$generator_input" `
+                        > ./problems/$problem/io/$tc_set/$index.in
+                }
             } else {
                 if (!(Test-Path ./problems/$problem/generators/$generator_name)) {
                     Write-Host "Generator $generator_name not found."
