@@ -20,19 +20,68 @@ param (
     [switch]$debugSolutions = $false
 )
 
+function Get-Solutions-Folder {
+    param ($problem)
+
+    return "./problems/$problem/solutions"
+}
+
+function Get-Io-Folder {
+    param ($problem)
+
+    return "./problems/$problem/io"
+}
+
+function Get-Io-Sets {
+    param ($problem)
+
+    $io_folder = Get-Io-Folder -problem $problem
+
+    return Get-ChildItem -Path "$io_folder/" `
+        -Name `
+        -Attributes D
+}
+
+function Get-Io {
+    param ($problem, $io_set)
+
+    $io_folder = Get-Io-Folder -problem $problem
+
+    return Get-ChildItem -Path "$io_folder/$io_set/*.in" `
+        -Name
+}
+
+function New-Or-Clear-File {
+    param($path, $file)
+
+    if (!(Test-Path "$path/$file")) {
+        $x = New-Item -Path "$path/" `
+            -Name "$file" `
+            -ItemType "file" `
+            -Value ""
+        $x = $x # quick silly fix
+    }
+    Clear-Content "$path/$file"
+}
+
 function Invoke-Output-Generator {
     param ($problem)
 
-    if (!(Test-Path ./problems/$problem/solutions -PathType Container)) {
+    $solutions_folder = Get-Solutions-Folder -problem $problem
+    $io_folder = Get-Io-Folder -problem $problem
+
+    if (!(Test-Path "$solutions_folder" -PathType Container)) {
+        Wirte-Host "Found no solutions folder."
         return
     }
 
-    $solutions = Get-ChildItem -Path ./problems/$problem/solutions/*-ac.cpp `
+    $solutions = Get-ChildItem -Path "$solutions_folder/*-ac.cpp" `
         -Name
     if ($null -eq $solutions) {
         Write-Host "Found no solutions suffixed with '-ac' to generate the output."
         return
     }
+
     $solution = $null
     if ($solutions.GetType().Name -eq "String") {
         $solution = $solutions
@@ -42,36 +91,34 @@ function Invoke-Output-Generator {
         Write-Host "Error while finding generation solution."
         return
     }
+    $solution = $solution.Split(".")[0]
 
-    Write-Host "Generating output using solution $solution."
+    Write-Host "Generating output using solution '$solution.cpp'."
 
-    g++ ./problems/$problem/solutions/$solution `
-        -o ./problems/$problem/solutions/$solution.exe
+    g++ "$solutions_folder/$solution.cpp" `
+        -o "$solutions_folder/$solution.exe"
 
-    $tc_sets = Get-ChildItem -Path ./problems/$problem/io/ `
-        -Name `
-        -Attributes D
-    foreach ($tc_set in $tc_sets) {
-        Write-Host "Checking the TC set #$tc_set"
+    $io_sets = Get-Io-Sets -problem $problem
+    foreach ($io_set in $io_sets) {
+        $input_files = Get-Io -problem $problem -io_set $io_set
+        $total_io_count = $input_files.length
+        $index = 1
+        foreach ($input_file in $input_files) {
+            $input_number = $input_file.Split(".")[0]
 
-        $tcs = Get-ChildItem -Path ./problems/$problem/io/$tc_set/*.in `
-            -Name
-        foreach ($tc in $tcs) {
-            $tc_number = $tc.Split(".")[0]
+            Write-Host "`rIO set #$io_set ($index/$total_io_count)." -NoNewLine
 
-            if (!(Test-Path ./problems/$problem/io/$tc_set/$tc_number.out)) {
-                $x = New-Item -Path ./problems/$problem/io/$tc_set/ `
-                    -Name "$tc_number.out" `
-                    -ItemType "file" `
-                    -Value ""
-                $x = $x # quick silly fix
-            }
-            Clear-Content ./problems/$problem/io/$tc_set/$tc_number.out
+            New-Or-Clear-File `
+                -path "$io_folder/$io_set" `
+                -file "$input_number.out"
 
-            Get-Content ./problems/$problem/io/$tc_set/$tc | `
-                & ./problems/$problem/solutions/$solution.exe `
-                > ./problems/$problem/io/$tc_set/$tc_number.out
+            Get-Content "$io_folder/$io_set/$input_file" | `
+                & "$solutions_folder/$solution.exe" `
+                > "$io_folder/$io_set/$input_number.out"
+
+            $index++
         }
+        Write-Host ""
     }
 }
 
