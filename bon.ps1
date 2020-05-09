@@ -17,7 +17,8 @@ param (
     [switch]$checkSolutions = $false,
     [switch]$generateInput = $false,
     [switch]$generateOutput = $false,
-    [switch]$debugSolutions = $false
+    [switch]$debugSolutions = $false,
+    $solutionFilter
 )
 
 function Get-Solutions-Folder {
@@ -65,7 +66,7 @@ function New-Or-Clear-File {
 }
 
 function Invoke-Output-Generator {
-    param ($problem)
+    param ($problem, $solutionFilter)
 
     $solutions_folder = Get-Solutions-Folder -problem $problem
     $io_folder = Get-Io-Folder -problem $problem
@@ -75,23 +76,34 @@ function Invoke-Output-Generator {
         return
     }
 
-    $solutions = Get-ChildItem -Path "$solutions_folder/*-ac.cpp" `
-        -Name
-    if ($null -eq $solutions) {
-        Write-Host "Found no solutions suffixed with '-ac' to generate the output."
-        return
-    }
-
     $solution = $null
-    if ($solutions.GetType().Name -eq "String") {
-        $solution = $solutions
-    } elseif ($solutions.GetType().Name -eq "Object[]") {
-        $solution = $solutions[0]
-    } else {
-        Write-Host "Error while finding generation solution."
-        return
+    if ($null -eq $solutionFilter) {
+        $solutions = Get-ChildItem -Path "$solutions_folder/*-ac.cpp" `
+            -Name
+        if ($null -eq $solutions) {
+            Write-Host "Found no solutions suffixed with '-ac' to generate the output."
+            return
+        }
+    
+        if ($solutions.GetType().Name -eq "String") {
+            $solution = $solutions
+        } elseif ($solutions.GetType().Name -eq "Object[]") {
+            $solution = $solutions[0]
+        } else {
+            Write-Host "Error while finding generation solution."
+            return
+        }
+        $solution = $solution.Split(".")[0]
     }
-    $solution = $solution.Split(".")[0]
+    else {
+        $solutions = Get-ChildItem -Path "$solutions_folder/$solutionFilter.cpp" `
+            -Name
+        if ($null -eq $solutions) {
+            Write-Host "Found no solution name $solutionFilter."
+            return
+        }
+        $solution = $solutionFilter
+    }
 
     Write-Host "Generating output using solution '$solution.cpp'."
 
@@ -407,7 +419,8 @@ foreach ($problem in $problems) {
 
     # generate output
     if ($generateOutput -eq $true) {
-        Invoke-Output-Generator -problem $problem
+        Invoke-Output-Generator -problem $problem `
+            -solutionFilter $solutionFilter
     }
 
     # check the io
