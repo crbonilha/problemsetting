@@ -164,6 +164,12 @@ function Invoke-Input-Generator {
             $generator_name = $tc_descriptor.generator
             $generator_seed = $tc_descriptor.seed
             $generator_input = $tc_descriptor.input
+            $generator_premade = $tc_descriptor.premade
+
+            if($null -ne $generator_premade) {
+                $index = $generator_premade.end + 1
+                continue
+            }
 
             if (!(Test-Path ./problems/$problem/io/$tc_set/$index.in)) {
                 $x = New-Item -Path ./problems/$problem/io/$tc_set/ `
