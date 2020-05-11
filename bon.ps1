@@ -18,7 +18,9 @@ param (
     [switch]$generateInput = $false,
     [switch]$generateOutput = $false,
     [switch]$debugSolutions = $false,
-    $solutionFilter
+    $solutionFilter,
+    $ioSetFilter,
+    $ioNumberFilter
 )
 
 function Get-Solutions-Folder {
@@ -66,7 +68,7 @@ function New-Or-Clear-File {
 }
 
 function Invoke-Output-Generator {
-    param ($problem, $solutionFilter)
+    param ($problem, $solutionFilter, $ioSetFilter, $ioNumberFilter)
 
     $solutions_folder = Get-Solutions-Folder -problem $problem
     $io_folder = Get-Io-Folder -problem $problem
@@ -110,23 +112,43 @@ function Invoke-Output-Generator {
     g++ "$solutions_folder/$solution.cpp" `
         -o "$solutions_folder/$solution.exe"
 
+    New-Or-Clear-File `
+        -path "$solutions_folder" `
+        -file "temp.txt"
+
     $io_sets = Get-Io-Sets -problem $problem
     foreach ($io_set in $io_sets) {
+        if ($null -ne $ioSetFilter -and $ioSetFilter -ne $io_set) {
+            continue
+        }
+
         $input_files = Get-Io -problem $problem -io_set $io_set
         $total_io_count = $input_files.length
         $index = 1
         foreach ($input_file in $input_files) {
             $input_number = $input_file.Split(".")[0]
+            if ($null -ne $ioNumberFilter -and $ioNumberFilter -ne $input_number) {
+                $index++
+                continue
+            }
 
             Write-Host "`rIO set #$io_set ($index/$total_io_count)." -NoNewLine
 
             New-Or-Clear-File `
                 -path "$io_folder/$io_set" `
                 -file "$input_number.out"
+            Clear-Content "$solutions_folder/temp.txt"
 
             Get-Content "$io_folder/$io_set/$input_file" | `
-                & "$solutions_folder/$solution.exe" `
-                > "$io_folder/$io_set/$input_number.out"
+                & "$solutions_folder/$solution.exe" | `
+                Out-File -Encoding UTF8 "$solutions_folder/temp.txt"
+            $solution_output = Get-Content "$solutions_folder/temp.txt"
+
+            $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+            [System.IO.File]::WriteAllLines(
+                "$io_folder/$io_set/$input_number.out",
+                $solution_output,
+                $Utf8NoBomEncoding)
 
             $index++
         }
@@ -183,8 +205,13 @@ function Invoke-Input-Generator {
             if ($null -eq $generator_name) {
                 if ($null -ne $generator_input) {
                     # generate input
-                    "$generator_input" `
-                        > ./problems/$problem/io/$tc_set/$index.in
+                    $input_temp = "$generator_input"
+
+                    $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+                    [System.IO.File]::WriteAllLines(
+                        "./problems/$problem/io/$tc_set/$index.in",
+                        $input_temp,
+                        $Utf8NoBomEncoding)
                 }
             } else {
                 if (!(Test-Path ./problems/$problem/generators/$generator_name)) {
@@ -196,9 +223,14 @@ function Invoke-Input-Generator {
                     -o ./problems/$problem/generators/$generator_name.exe
 
                 # generate input
-                "$generator_seed $generator_input" | `
-                    & ./problems/$problem/generators/$generator_name.exe `
-                    > ./problems/$problem/io/$tc_set/$index.in
+                $input_temp = "$generator_seed $generator_input" | `
+                    & ./problems/$problem/generators/$generator_name.exe
+
+                $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+                [System.IO.File]::WriteAllLines(
+                    "./problems/$problem/io/$tc_set/$index.in",
+                    $input_temp,
+                    $Utf8NoBomEncoding)
             }
 
             $index++
@@ -426,7 +458,9 @@ foreach ($problem in $problems) {
     # generate output
     if ($generateOutput -eq $true) {
         Invoke-Output-Generator -problem $problem `
-            -solutionFilter $solutionFilter
+            -solutionFilter $solutionFilter `
+            -ioSetFilter $ioSetFilter `
+            -ioNumberFilter $ioNumberFilter
     }
 
     # check the io
